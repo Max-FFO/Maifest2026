@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Maifest 2026</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root {
+  --bg: #0d1117; --surface: #161b22; --surface2: #21262d;
+  --border: #30363d; --green: #3fb950; --blue: #58a6ff;
+  --orange: #f0883e; --red: #f85149; --yellow: #d29922;
+  --text: #e6edf3; --muted: #8b949e; --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 16px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: opacity .15s; }
+.btn:active { opacity: .7; }
+.btn-primary  { background: var(--green); color: #000; }
+.btn-secondary{ background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-danger   { background: var(--red); color: #fff; }
+.btn-warning  { background: var(--yellow); color: #000; }
+.btn-blue     { background: var(--blue); color: #000; }
+.btn-lg  { padding: 12px 24px; font-size: 16px; }
+.btn-sm  { padding: 4px 10px; font-size: 12px; }
+.btn-full{ width: 100%; }
+
+/* ── Header ── */
+#hdr { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 18px; font-weight: 700; color: var(--green); white-space: nowrap; }
+#nav { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+.nav-btn { padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; transition: all .15s; }
+.nav-btn.active { background: var(--surface2); color: var(--text); border-color: var(--green); }
+.hdr-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+#hdr-user { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+/* ── Views ── */
+.view { display: none; }
+.view.active { display: block; }
+#main { padding: 16px; max-width: 1400px; margin: 0 auto; }
+
+/* ── Login ── */
+#v-login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 32px; max-width: 500px; width: 100%; }
+.login-title { text-align: center; font-size: 24px; font-weight: 700; color: var(--green); margin-bottom: 6px; }
+.login-sub { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+.users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-bottom: 20px; }
+.user-btn { padding: 16px 12px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; text-align: center; transition: border-color .15s; }
+.user-btn:hover { border-color: var(--blue); }
+.user-btn.selected { border-color: var(--green); }
+.user-btn .role-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+#pin-section { display: none; margin-top: 16px; }
+#pin-display { text-align: center; font-size: 30px; letter-spacing: 14px; min-height: 44px; margin-bottom: 14px; }
+.pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pin-btn { padding: 18px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; font-size: 20px; font-weight: 500; transition: background .15s; }
+.pin-btn:hover { background: var(--border); }
+.pin-confirm { background: var(--green) !important; color: #000 !important; border-color: var(--green) !important; }
+#login-err { color: var(--red); text-align: center; font-size: 13px; min-height: 20px; margin-top: 8px; }
+
+/* ── Tables ── */
+.section-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-hdr h2 { font-size: 18px; }
+#tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; }
+.table-card { padding: 20px 12px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface); cursor: pointer; text-align: center; transition: transform .1s, border-color .15s; }
+.table-card:active { transform: scale(.97); }
+.table-card.free { border-color: var(--green); }
+.table-card.busy { border-color: var(--yellow); background: var(--surface2); }
+.tnum { font-size: 22px; font-weight: 700; }
+.tname { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.tbal { font-size: 14px; font-weight: 600; color: var(--yellow); margin-top: 6px; }
+
+/* ── Order ── */
+#v-order.active { display: flex; gap: 16px; }
+#order-left { flex: 1; min-width: 0; }
+#order-right { width: 320px; flex-shrink: 0; }
+.back-link { display: flex; align-items: center; gap: 6px; color: var(--blue); cursor: pointer; font-size: 14px; margin-bottom: 16px; }
+.back-link:hover { text-decoration: underline; }
+.order-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.order-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.cat-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.cat-tab { padding: 8px 16px; border-radius: 20px; border: 2px solid transparent; background: var(--surface2); color: var(--text); cursor: pointer; font-size: 13px; transition: all .15s; white-space: nowrap; }
+#items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.item-card { padding: 14px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: background .1s; }
+.item-card:hover { background: var(--surface2); }
+.item-card:active { opacity: .7; }
+.item-name { font-size: 14px; font-weight: 500; }
+.item-price { font-size: 13px; color: var(--green); margin-top: 4px; }
+/* cart */
+.cart-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; position: sticky; top: 72px; }
+.cart-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+.cart-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
+.cart-items { max-height: calc(100vh - 380px); overflow-y: auto; }
+.ci { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.ci-name { flex: 1; font-size: 13px; }
+.ci-qty { display: flex; align-items: center; gap: 4px; }
+.ci-qty button { width: 24px; height: 24px; border-radius: 4px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; font-size: 14px; }
+.ci-qty span { min-width: 20px; text-align: center; font-size: 13px; }
+.ci-price { font-size: 13px; color: var(--green); min-width: 50px; text-align: right; }
+.ci-del { color: var(--red); cursor: pointer; padding: 4px; font-size: 16px; }
+.cart-total-row { display: flex; justify-content: space-between; padding: 12px 0 8px; font-size: 16px; font-weight: 700; }
+.cart-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+/* existing orders */
+.existing-orders { margin-top: 20px; }
+.eo-header-row { font-size: 13px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+.eo-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; }
+.eo-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.eo-item-row { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 0; }
+.sdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+.s-pending { background: var(--yellow); }
+.s-done    { background: var(--green); }
+.s-paid    { background: var(--muted); }
+
+/* ── Pay ── */
+.pay-hdr { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.pay-sel-btns { display: flex; gap: 8px; margin-bottom: 12px; }
+.pay-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 16px; }
+.pay-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.pay-item:last-child { border-bottom: none; }
+.pay-item.selected { background: rgba(63,185,80,.1); }
+.pay-item input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--green); }
+.pay-item-info { flex: 1; }
+.pay-item-name { font-size: 14px; }
+.pay-item-meta { font-size: 12px; color: var(--muted); }
+.pay-item-price { font-size: 14px; font-weight: 600; color: var(--green); }
+.pay-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.pay-method { padding: 14px; border-radius: var(--radius); border: 2px solid var(--border); background: var(--surface2); cursor: pointer; text-align: center; font-size: 15px; transition: border-color .15s; }
+.pay-method.selected { border-color: var(--green); color: var(--green); }
+.pay-summary { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.pay-sum-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+.pay-sum-row.total { font-size: 18px; font-weight: 700; border-top: 1px solid var(--border); padding-top: 10px; margin-top: 6px; }
+
+/* ── Station ── */
+.station-hdr { margin-bottom: 20px; }
+.station-hdr h2 { font-size: 22px; font-weight: 700; }
+.station-hdr p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+#station-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.so-card { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.so-card.fresh  { border-color: var(--green); }
+.so-card.urgent { border-color: var(--red); }
+.so-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.so-table { font-size: 18px; font-weight: 700; }
+.so-waiter { font-size: 12px; color: var(--blue); }
+.so-time { font-size: 12px; color: var(--muted); text-align: right; }
+.so-warn { font-size: 11px; color: var(--red); }
+.so-items { margin-bottom: 12px; }
+.so-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; border-bottom: 1px solid var(--border); }
+.so-row:last-child { border-bottom: none; }
+.so-qty { font-weight: 700; color: var(--orange); min-width: 30px; }
+.station-empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+.station-empty .big { font-size: 48px; margin-bottom: 12px; }
+
+/* ── Admin ── */
+.admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.admin-tab { padding: 8px 16px; border-radius: 20px; border: 2px solid var(--border); background: var(--surface2); color: var(--muted); cursor: pointer; font-size: 13px; transition: all .15s; }
+.admin-tab.active { border-color: var(--blue); color: var(--blue); background: rgba(88,166,255,.1); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.stat-val { font-size: 26px; font-weight: 700; }
+.stat-val.green { color: var(--green); }
+.stat-val.blue  { color: var(--blue); }
+.tbl-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.tbl-hdr h3 { font-size: 16px; }
+.dtable { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
+.dtable th,.dtable td { padding: 10px 14px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); }
+.dtable th { color: var(--muted); font-weight: 500; background: var(--surface2); }
+.dtable tr:last-child td { border-bottom: none; }
+.dtable tr:hover td { background: var(--surface2); }
+.tbl-wrap { overflow-x: auto; }
+/* top items */
+.top-items { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.ti-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.ti-row:last-child { border-bottom: none; }
+.ti-rank { color: var(--muted); min-width: 20px; }
+.ti-name { flex: 1; }
+.ti-bar-wrap { flex: 1; max-width: 80px; }
+.ti-bar { height: 6px; background: var(--green); border-radius: 3px; }
+.ti-qty { color: var(--muted); min-width: 40px; text-align: right; }
+.ti-rev { color: var(--green); min-width: 60px; text-align: right; font-weight: 600; }
+
+/* ── Modal ── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; }
+.modal h3 { font-size: 18px; margin-bottom: 16px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.form-group input,.form-group select { width: 100%; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 14px; }
+.form-group input:focus,.form-group select:focus { outline: none; border-color: var(--blue); }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* ── Toast ── */
+#toast { position: fixed; bottom: 20px; right: 20px; z-index: 300; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast-msg { padding: 12px 16px; border-radius: var(--radius); font-size: 14px; font-weight: 500; animation: slideIn .2s ease; max-width: 300px; }
+.toast-success { background: var(--green); color: #000; }
+.toast-error   { background: var(--red); color: #fff; }
+.toast-info    { background: var(--blue); color: #000; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ── Badges ── */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.bg  { background: rgba(63,185,80,.2); color: var(--green); }
+.by  { background: rgba(210,153,34,.2); color: var(--yellow); }
+.bb  { background: rgba(88,166,255,.2); color: var(--blue); }
+.br  { background: rgba(248,81,73,.2); color: var(--red); }
+.bm  { background: rgba(139,148,158,.2); color: var(--muted); }
+.cdot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; vertical-align: middle; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  #v-order.active { flex-direction: column; }
+  #order-right { width: 100%; }
+  .cart-box { position: static; }
+  .cart-items { max-height: 220px; }
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ── Login ── -->
+<div id="v-login">
+  <div class="login-card">
+    <div class="login-title">🌿 Maifest 2026</div>
+    <div class="login-sub">Kassensystem — Bitte anmelden</div>
+    <div class="users-grid" id="users-grid"></div>
+    <div id="pin-section">
+      <div id="pin-display">––––</div>
+      <div class="pin-grid" id="pin-grid"></div>
+    </div>
+    <div id="login-err"></div>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div id="app" style="display:none; flex-direction:column; min-height:100vh;">
+  <header id="hdr">
+    <span class="logo">🌿 Maifest</span>
+    <nav id="nav"></nav>
+    <div class="hdr-right">
+      <span id="hdr-user"></span>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">Abmelden</button>
+    </div>
+  </header>
+  <div id="main">
+
+    <!-- Tables -->
+    <div id="v-tables" class="view">
+      <div class="section-hdr">
+        <h2>Tische</h2>
+        <span id="tables-summary" style="font-size:13px;color:var(--muted)"></span>
+      </div>
+      <div id="tables-grid"></div>
+    </div>
+
+    <!-- Order -->
+    <div id="v-order" class="view">
+      <div id="order-left">
+        <div class="back-link" onclick="showView('tables')">← Zurück zu Tischen</div>
+        <div id="order-heading"></div>
+        <div class="cat-tabs" id="cat-tabs"></div>
+        <div id="items-grid"></div>
+        <div id="existing-orders"></div>
+      </div>
+      <div id="order-right">
+        <div class="cart-box">
+          <div class="cart-title">🛒 Neue Bestellung</div>
+          <div class="cart-items" id="cart-items">
+            <div class="cart-empty">Noch keine Artikel</div>
+          </div>
+          <div class="cart-total-row">
+            <span>Gesamt</span>
+            <span id="cart-total">€ 0,00</span>
+          </div>
+          <div class="cart-actions">
+            <button class="btn btn-primary btn-lg btn-full" onclick="submitOrder()">Bestellen ✓</button>
+            <button class="btn btn-warning btn-full" onclick="goToPay()">Bezahlen 💶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pay -->
+    <div id="v-pay" class="view">
+      <div class="pay-hdr">
+        <button class="btn btn-secondary btn-sm" id="pay-back">← Zurück</button>
+        <h2 id="pay-title">Bezahlen</h2>
+      </div>
+      <div class="pay-sel-btns">
+        <button class="btn btn-secondary btn-sm" onclick="selAllPay(true)">Alle auswählen</button>
+        <button class="btn btn-secondary btn-sm" onclick="selAllPay(false)">Keine</button>
+      </div>
+      <div class="pay-list" id="pay-list"></div>
+      <h3 style="margin:16px 0 10px;font-size:15px;">Zahlungsmethode</h3>
+      <div class="pay-methods">
+        <div class="pay-method selected" id="pm-cash" onclick="setPayMethod('cash')">💵 Bar</div>
+        <div class="pay-method" id="pm-card" onclick="setPayMethod('card')">💳 Karte</div>
+      </div>
+      <div class="pay-summary">
+        <div class="pay-sum-row"><span>Artikel</span><span id="pay-count">0</span></div>
+        <div class="pay-sum-row total"><span>Betrag</span><span id="pay-total">€ 0,00</span></div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-full" onclick="processPay()">Jetzt bezahlen ✓</button>
+    </div>
+
+    <!-- Station -->
+    <div id="v-station" class="view">
+      <div class="station-hdr">
+        <h2 id="station-title">Station</h2>
+        <p id="station-sub">Ausstehende Bestellungen</p>
+      </div>
+      <div id="station-grid"></div>
+      <div id="station-empty" class="station-empty" style="display:none">
+        <div class="big">✅</div>
+        <div>Keine ausstehenden Bestellungen</div>
+      </div>
+    </div>
+
+    <!-- Admin -->
+    <div id="v-admin" class="view">
+      <div class="admin-tabs">
+        <div class="admin-tab active" onclick="setAdminTab('dashboard')">📊 Dashboard</div>
+        <div class="admin-tab" onclick="setAdminTab('users')">👤 Benutzer</div>
+        <div class="admin-tab" onclick="setAdminTab('categories')">📁 Kategorien</div>
+        <div class="admin-tab" onclick="setAdminTab('items')">🍺 Artikel</div>
+        <div class="admin-tab" onclick="setAdminTab('tables')">🪑 Tische</div>
+      </div>
+      <div id="admin-content"></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Modal -->
+<div id="modal-bg" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+const S = {
+  user: null, token: null,
+  tables: [], categories: [], allItems: [],
+  currentTable: null, currentOrders: [],
+  cart: [], selectedCat: null,
+  payMethod: 'cash', adminTab: 'dashboard',
+  socket: null, stationInterval: null,
+};
+
+// ─── API ─────────────────────────────────────────────────────────────────────
+async function api(method, url, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(S.token ? { Authorization: 'Bearer ' + S.token } : {}) }
+  };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'HTTP ' + res.status);
+  return data;
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast-msg toast-' + type;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ─── Modal ───────────────────────────────────────────────────────────────────
+function openModal(title, bodyHtml, actionsHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHtml;
+  document.getElementById('modal-actions').innerHTML = actionsHtml;
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none';
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function fmt(n) { return '€\u00a0' + (n || 0).toFixed(2).replace('.', ','); }
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now() - new Date(ts)) / 60000);
+  if (diff < 1) return 'gerade';
+  if (diff < 60) return diff + ' min';
+  return Math.floor(diff / 60) + 'h ' + (diff % 60) + 'min';
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── Views ───────────────────────────────────────────────────────────────────
+function showView(name) {
+  document.querySelectorAll('#main > .view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('v-' + name);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  if (name === 'tables') loadTables();
+  if (name === 'station') loadStation();
+  if (name === 'admin') { S.adminTab = 'dashboard'; renderAdminTabs(); loadAdminContent(); }
+}
+
+// ─── Login ───────────────────────────────────────────────────────────────────
+let selUser = null, pinVal = '';
+
+async function initLogin() {
+  const users = await api('GET', '/api/users/public');
+  const grid = document.getElementById('users-grid');
+  grid.innerHTML = '';
+  const roles = { admin: 'Admin', waiter: 'Kellner', kitchen: 'Küche', bar: 'Bar' };
+  users.forEach(u => {
+    const d = document.createElement('div');
+    d.className = 'user-btn';
+    d.innerHTML = '<div>' + esc(u.name) + '</div><div class="role-label">' + (roles[u.role] || u.role) + '</div>';
+    d.onclick = () => pickUser(u, d);
+    grid.appendChild(d);
+  });
+  buildPinPad();
+}
+
+function pickUser(u, el) {
+  selUser = u; pinVal = '';
+  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('login-err').textContent = '';
+  updatePinDisplay();
+  if (u.has_pin) {
+    document.getElementById('pin-section').style.display = 'block';
+  } else {
+    document.getElementById('pin-section').style.display = 'none';
+    doLogin();
+  }
+}
+
+function buildPinPad() {
+  const grid = document.getElementById('pin-grid');
+  ['1','2','3','4','5','6','7','8','9','⌫','0','✓'].forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'pin-btn' + (k === '✓' ? ' pin-confirm' : '');
+    b.textContent = k;
+    b.onclick = () => {
+      if (k === '⌫') { pinVal = pinVal.slice(0,-1); updatePinDisplay(); }
+      else if (k === '✓') { doLogin(); }
+      else if (pinVal.length < 8) { pinVal += k; updatePinDisplay(); }
+    };
+    grid.appendChild(b);
+  });
+}
+function updatePinDisplay() {
+  document.getElementById('pin-display').textContent = pinVal ? '●'.repeat(pinVal.length) : '––––';
+}
+
+// Keyboard support for PIN
+document.addEventListener('keydown', e => {
+  if (document.getElementById('v-login').style.display !== 'none' && selUser?.has_pin) {
+    if (e.key >= '0' && e.key <= '9' && pinVal.length < 8) { pinVal += e.key; updatePinDisplay(); }
+    else if (e.key === 'Backspace') { pinVal = pinVal.slice(0,-1); updatePinDisplay(); }
+    else if (e.key === 'Enter') { doLogin(); }
+  }
+});
+
+async function doLogin() {
+  if (!selUser) return;
+  try {
+    const data = await api('POST', '/api/auth/login', { userId: selUser.id, pin: pinVal || undefined });
+    S.token = data.token; S.user = data.user;
+    localStorage.setItem('mf_token', data.token);
+    localStorage.setItem('mf_user', JSON.stringify(data.user));
+    startApp();
+  } catch(e) {
+    document.getElementById('login-err').textContent = e.message;
+    pinVal = ''; updatePinDisplay();
+  }
+}
+
+async function logout() {
+  try { await api('POST', '/api/auth/logout'); } catch {}
+  S.token = null; S.user = null;
+  localStorage.removeItem('mf_token'); localStorage.removeItem('mf_user');
+  if (S.socket) S.socket.disconnect();
+  if (S.stationInterval) clearInterval(S.stationInterval);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('v-login').style.display = 'flex';
+  selUser = null; pinVal = '';
+  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('pin-section').style.display = 'none';
+  updatePinDisplay();
+  document.getElementById('login-err').textContent = '';
+}
+
+// ─── App Start ───────────────────────────────────────────────────────────────
+async function startApp() {
+  document.getElementById('v-login').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('hdr-user').textContent = S.user.name;
+
+  // Nav
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  const items = [];
+  if (['admin','waiter'].includes(S.user.role)) items.push({ v: 'tables', l: '🪑 Tische' });
+  if (S.user.role === 'kitchen') items.push({ v: 'station', l: '🍳 Küche' });
+  if (S.user.role === 'bar')     items.push({ v: 'station', l: '🍺 Bar' });
+  if (S.user.role === 'admin')   items.push({ v: 'admin',   l: '⚙️ Admin' });
+  items.forEach(ni => {
+    const b = document.createElement('button');
+    b.className = 'nav-btn'; b.dataset.view = ni.v; b.textContent = ni.l;
+    b.onclick = () => showView(ni.v);
+    nav.appendChild(b);
+  });
+
+  // Socket
+  S.socket = io();
+  S.socket.on('table_update', d => {
+    const i = S.tables.findIndex(t => t.id === d.id);
+    if (i >= 0) { S.tables[i] = d; if (document.getElementById('v-tables').classList.contains('active')) renderTablesGrid(); }
+  });
+  S.socket.on('new_order', o => {
+    if (document.getElementById('v-station').classList.contains('active')) loadStation();
+    toast('Neue Bestellung: Tisch ' + o.table_number, 'info');
+  });
+  S.socket.on('order_update', o => {
+    if (document.getElementById('v-station').classList.contains('active')) loadStation();
+    if (document.getElementById('v-order').classList.contains('active') && S.currentTable?.id === o.table_id) loadTableOrders();
+  });
+
+  if (S.user.role === 'kitchen') S.socket.emit('join', 'kitchen');
+  if (S.user.role === 'bar')     S.socket.emit('join', 'bar');
+
+  if (S.user.role === 'kitchen' || S.user.role === 'bar') {
+    S.stationInterval = setInterval(() => {
+      if (document.getElementById('v-station').classList.contains('active')) loadStation();
+    }, 30000);
+  }
+
+  await Promise.all([loadCategories(), loadItems()]);
+
+  if (S.user.role === 'kitchen' || S.user.role === 'bar') showView('station');
+  else showView('tables');
+}
+
+// ─── Tables ───────────────────────────────────────────────────────────────────
+async function loadTables() {
+  try {
+    S.tables = await api('GET', '/api/tables');
+    renderTablesGrid();
+  } catch(e) { toast(e.message, 'error'); }
+}
+function renderTablesGrid() {
+  const open = S.tables.filter(t => t.open_orders > 0).length;
+  document.getElementById('tables-summary').textContent = open + ' belegt von ' + S.tables.length;
+  const grid = document.getElementById('tables-grid');
+  grid.innerHTML = '';
+  S.tables.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'table-card ' + (t.open_orders > 0 ? 'busy' : 'free');
+    d.innerHTML = '<div class="tnum">' + t.number + '</div>' +
+      '<div class="tname">' + esc(t.name || 'Tisch ' + t.number) + '</div>' +
+      (t.balance > 0 ? '<div class="tbal">' + fmt(t.balance) + '</div>' : '');
+    d.onclick = () => openTable(t);
+    grid.appendChild(d);
+  });
+}
+
+// ─── Order ────────────────────────────────────────────────────────────────────
+async function openTable(t) {
+  S.currentTable = t; S.cart = []; S.selectedCat = null;
+  await loadTableOrders();
+  showView('order');
+  renderOrderHead();
+  renderCatTabs();
+}
+async function loadTableOrders() {
+  if (!S.currentTable) return;
+  try {
+    S.currentOrders = await api('GET', '/api/orders/table/' + S.currentTable.id);
+    renderExistingOrders();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function loadCategories() {
+  try { S.categories = await api('GET', '/api/categories'); } catch {}
+}
+async function loadItems() {
+  try { S.allItems = await api('GET', '/api/items'); } catch {}
+}
+
+function renderOrderHead() {
+  const t = S.currentTable;
+  document.getElementById('order-heading').innerHTML =
+    '<div class="order-title">Tisch ' + t.number + '</div>' +
+    '<div class="order-sub">' + esc(t.name || '') + '</div>';
+}
+function renderCatTabs() {
+  const tabs = document.getElementById('cat-tabs');
+  tabs.innerHTML = '';
+  S.categories.forEach((cat, i) => {
+    const d = document.createElement('div');
+    d.className = 'cat-tab';
+    d.textContent = cat.name;
+    if (i === 0 && !S.selectedCat) { S.selectedCat = cat.id; d.classList.add('active'); applyCatStyle(d, cat.color, true); }
+    d.onclick = () => {
+      S.selectedCat = cat.id;
+      document.querySelectorAll('.cat-tab').forEach((t2, j) => {
+        const isActive = j === i;
+        t2.classList.toggle('active', isActive);
+        applyCatStyle(t2, S.categories[j].color, isActive);
+      });
+      renderItems();
+    };
+    tabs.appendChild(d);
+  });
+  renderItems();
+}
+function applyCatStyle(el, color, active) {
+  el.style.borderColor = active ? color : 'transparent';
+  el.style.background = active ? color + '33' : '';
+}
+function renderItems() {
+  const grid = document.getElementById('items-grid');
+  grid.innerHTML = '';
+  S.allItems.filter(it => it.category_id === S.selectedCat && it.active).forEach(it => {
+    const d = document.createElement('div');
+    d.className = 'item-card';
+    d.innerHTML = '<div class="item-name">' + esc(it.name) + '</div><div class="item-price">' + fmt(it.price) + '</div>';
+    d.onclick = () => addToCart(it);
+    grid.appendChild(d);
+  });
+}
+function addToCart(item) {
+  const ex = S.cart.find(c => c.id === item.id);
+  if (ex) ex.quantity++;
+  else S.cart.push({ ...item, quantity: 1 });
+  renderCart();
+}
+function updateCartQty(id, delta) {
+  const i = S.cart.findIndex(c => c.id === id);
+  if (i < 0) return;
+  S.cart[i].quantity += delta;
+  if (S.cart[i].quantity <= 0) S.cart.splice(i, 1);
+  renderCart();
+}
+function renderCart() {
+  const cont = document.getElementById('cart-items');
+  const total = S.cart.reduce((s, c) => s + c.price * c.quantity, 0);
+  document.getElementById('cart-total').textContent = fmt(total);
+  if (!S.cart.length) { cont.innerHTML = '<div class="cart-empty">Noch keine Artikel</div>'; return; }
+  cont.innerHTML = '';
+  S.cart.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'ci';
+    d.innerHTML =
+      '<div class="ci-name">' + esc(item.name) + '</div>' +
+      '<div class="ci-qty">' +
+        '<button onclick="updateCartQty(' + item.id + ',-1)">−</button>' +
+        '<span>' + item.quantity + '</span>' +
+        '<button onclick="updateCartQty(' + item.id + ',1)">+</button>' +
+      '</div>' +
+      '<div class="ci-price">' + fmt(item.price * item.quantity) + '</div>' +
+      '<span class="ci-del" onclick="removeFromCart(' + item.id + ')">✕</span>';
+    cont.appendChild(d);
+  });
+}
+function removeFromCart(id) { S.cart = S.cart.filter(c => c.id !== id); renderCart(); }
+
+async function submitOrder() {
+  if (!S.cart.length) { toast('Keine Artikel im Warenkorb', 'error'); return; }
+  try {
+    await api('POST', '/api/orders', {
+      table_id: S.currentTable.id,
+      items: S.cart.map(c => ({ id: c.id, name: c.name, price: c.price, quantity: c.quantity, station: c.station }))
+    });
+    S.cart = []; renderCart();
+    await loadTableOrders();
+    toast('Bestellung aufgegeben! ✓');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+function renderExistingOrders() {
+  const cont = document.getElementById('existing-orders');
+  if (!S.currentOrders.length) { cont.innerHTML = ''; return; }
+  const sl = { pending: 'Offen', done: 'Fertig', paid: 'Bezahlt', kitchen_done: 'Küche ✓', bar_done: 'Bar ✓', ready: 'Bereit', open: 'Offen' };
+  let html = '<div class="eo-header-row">Laufende Bestellungen</div>';
+  S.currentOrders.forEach(o => {
+    const itemsHtml = o.items.map(i =>
+      '<div class="eo-item-row"><span><span class="sdot s-' + i.status + '"></span>' + esc(i.item_name) + ' ×' + i.quantity + '</span><span>' + fmt(i.item_price * i.quantity) + '</span></div>'
+    ).join('');
+    html += '<div class="eo-card">' +
+      '<div class="eo-meta"><span>#' + o.id + ' — ' + timeAgo(o.created_at) + '</span>' +
+      '<span><span class="badge by">' + (sl[o.status] || o.status) + '</span></span></div>' +
+      itemsHtml + '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+// ─── Pay ──────────────────────────────────────────────────────────────────────
+function goToPay() {
+  S.payMethod = 'cash';
+  document.getElementById('pay-title').textContent = 'Tisch ' + S.currentTable.number + ' bezahlen';
+  document.getElementById('pay-back').onclick = () => showView('order');
+  const allItems = S.currentOrders.flatMap(o =>
+    o.items.filter(i => i.status !== 'paid').map(i => ({ ...i, order_id: o.id }))
+  );
+  const list = document.getElementById('pay-list');
+  if (!allItems.length) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">Nichts zu bezahlen</div>';
+  } else {
+    list.innerHTML = '';
+    allItems.forEach(item => {
+      const d = document.createElement('div');
+      d.className = 'pay-item selected';
+      d.dataset.iid = item.id;
+      d.dataset.price = item.item_price * item.quantity;
+      d.innerHTML =
+        '<input type="checkbox" checked>' +
+        '<div class="pay-item-info">' +
+          '<div class="pay-item-name">' + esc(item.item_name) + ' ×' + item.quantity + '</div>' +
+          '<div class="pay-item-meta">' + (item.station === 'kitchen' ? '🍳 Küche' : '🍺 Bar') + '</div>' +
+        '</div>' +
+        '<div class="pay-item-price">' + fmt(item.item_price * item.quantity) + '</div>';
+      d.onclick = (e) => {
+        if (e.target.tagName !== 'INPUT') {
+          const cb = d.querySelector('input'); cb.checked = !cb.checked;
+        }
+        d.classList.toggle('selected', d.querySelector('input').checked);
+        updatePaySummary();
+      };
+      d.querySelector('input').onchange = () => { d.classList.toggle('selected', d.querySelector('input').checked); updatePaySummary(); };
+      list.appendChild(d);
+    });
+  }
+  updatePaySummary();
+  showView('pay');
+}
+function selAllPay(v) {
+  document.querySelectorAll('.pay-item').forEach(d => {
+    d.querySelector('input').checked = v;
+    d.classList.toggle('selected', v);
+  });
+  updatePaySummary();
+}
+function updatePaySummary() {
+  const checked = document.querySelectorAll('.pay-item input:checked');
+  let total = 0;
+  checked.forEach(cb => { total += parseFloat(cb.closest('.pay-item').dataset.price || 0); });
+  document.getElementById('pay-count').textContent = checked.length + ' Artikel';
+  document.getElementById('pay-total').textContent = fmt(total);
+}
+function setPayMethod(m) {
+  S.payMethod = m;
+  document.getElementById('pm-cash').classList.toggle('selected', m === 'cash');
+  document.getElementById('pm-card').classList.toggle('selected', m === 'card');
+}
+async function processPay() {
+  const checked = document.querySelectorAll('.pay-item input:checked');
+  if (!checked.length) { toast('Keine Artikel ausgewählt', 'error'); return; }
+  const item_ids = Array.from(checked).map(cb => parseInt(cb.closest('.pay-item').dataset.iid));
+  try {
+    await api('POST', '/api/orders/pay', { table_id: S.currentTable.id, item_ids, payment_method: S.payMethod });
+    toast('Bezahlt! ✓');
+    await loadTableOrders();
+    const remaining = S.currentOrders.flatMap(o => o.items.filter(i => i.status !== 'paid'));
+    showView(remaining.length ? 'order' : 'tables');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── Station ─────────────────────────────────────────────────────────────────
+async function loadStation() {
+  const station = S.user.role === 'kitchen' ? 'kitchen' : 'bar';
+  document.getElementById('station-title').textContent = station === 'kitchen' ? '🍳 Küche' : '🍺 Bar';
+  try {
+    const orders = await api('GET', '/api/orders?station=' + station);
+    const grid = document.getElementById('station-grid');
+    const empty = document.getElementById('station-empty');
+    const pending = orders.filter(o => o.items.some(i => i.status === 'pending'));
+    grid.innerHTML = '';
+    if (!pending.length) { empty.style.display = 'block'; grid.style.display = 'none'; return; }
+    empty.style.display = 'none'; grid.style.display = 'grid';
+    pending.forEach(o => {
+      const pItems = o.items.filter(i => i.status === 'pending' && i.station === station);
+      if (!pItems.length) return;
+      const age = Math.floor((Date.now() - new Date(o.created_at)) / 60000);
+      const d = document.createElement('div');
+      d.className = 'so-card ' + (age > 15 ? 'urgent' : 'fresh');
+      d.innerHTML =
+        '<div class="so-top">' +
+          '<div><div class="so-table">Tisch ' + o.table_number + '</div>' +
+          '<div class="so-waiter">' + esc(o.waiter_name || '') + '</div></div>' +
+          '<div class="so-time"><div>' + timeAgo(o.created_at) + '</div>' +
+          (age > 15 ? '<div class="so-warn">⚠ Wartet lang</div>' : '') + '</div>' +
+        '</div>' +
+        '<div class="so-items">' +
+          pItems.map(i => '<div class="so-row"><span class="so-qty">' + i.quantity + '×</span><span>' + esc(i.item_name) + '</span></div>').join('') +
+        '</div>' +
+        '<button class="btn btn-primary btn-full" onclick="markDone(' + o.id + ')">✓ Fertig</button>';
+      grid.appendChild(d);
+    });
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function markDone(orderId) {
+  const station = S.user.role === 'kitchen' ? 'kitchen' : 'bar';
+  try {
+    await api('PUT', '/api/orders/' + orderId + '/items-done', { station });
+    toast('Als fertig markiert ✓');
+    loadStation();
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── Admin ────────────────────────────────────────────────────────────────────
+function renderAdminTabs() {
+  const tabs = ['dashboard','users','categories','items','tables'];
+  document.querySelectorAll('.admin-tab').forEach((el, i) => el.classList.toggle('active', tabs[i] === S.adminTab));
+}
+function setAdminTab(tab) { S.adminTab = tab; renderAdminTabs(); loadAdminContent(); }
+
+async function loadAdminContent() {
+  const c = document.getElementById('admin-content');
+  c.innerHTML = '<div style="padding:20px;color:var(--muted)">Laden…</div>';
+  try {
+    if (S.adminTab === 'dashboard')  await renderDashboard();
+    if (S.adminTab === 'users')      await renderUsers();
+    if (S.adminTab === 'categories') await renderCategories();
+    if (S.adminTab === 'items')      await renderItems2();
+    if (S.adminTab === 'tables')     await renderTablesAdmin();
+  } catch(e) { c.innerHTML = '<div style="color:var(--red);padding:20px">' + esc(e.message) + '</div>'; }
+}
+
+async function renderDashboard() {
+  const d = await api('GET', '/api/dashboard');
+  const topHtml = d.topItems.length
+    ? d.topItems.map((it, i) =>
+        '<div class="ti-row"><span class="ti-rank">' + (i+1) + '.</span>' +
+        '<span class="ti-name">' + esc(it.item_name) + '</span>' +
+        '<div class="ti-bar-wrap"><div class="ti-bar" style="width:' + Math.round(it.qty/d.topItems[0].qty*100) + '%"></div></div>' +
+        '<span class="ti-qty">' + it.qty + '×</span>' +
+        '<span class="ti-rev">' + fmt(it.revenue) + '</span></div>'
+      ).join('')
+    : '<div style="padding:20px;text-align:center;color:var(--muted)">Keine Daten</div>';
+  const recentHtml = d.recentOrders.slice(0,10).map(o =>
+    '<tr><td>' + o.id + '</td><td>Tisch ' + o.table_number + '</td><td>' + esc(o.waiter_name || '—') + '</td>' +
+    '<td><span class="badge ' + (o.status === 'paid' ? 'bg' : 'by') + '">' + esc(o.status) + '</span></td>' +
+    '<td>' + fmt(o.total) + '</td><td>' + new Date(o.created_at).toLocaleTimeString('de') + '</td></tr>'
+  ).join('');
+  document.getElementById('admin-content').innerHTML =
+    '<div class="stats-grid">' +
+      '<div class="stat-card"><div class="stat-label">Gesamtumsatz</div><div class="stat-val green">' + fmt(d.totalRevenue) + '</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Heute</div><div class="stat-val blue">' + fmt(d.todayRevenue) + '</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Offene Bestellungen</div><div class="stat-val">' + d.openOrders + '</div></div>' +
+      '<div class="stat-card"><div class="stat-label">Bestellungen gesamt</div><div class="stat-val">' + d.totalOrders + '</div></div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 2fr;gap:16px;align-items:start">' +
+      '<div><h3 style="margin-bottom:12px;font-size:15px;">Top Artikel</h3><div class="top-items">' + topHtml + '</div></div>' +
+      '<div><h3 style="margin-bottom:12px;font-size:15px;">Letzte Bestellungen</h3><div class="tbl-wrap">' +
+        '<table class="dtable"><thead><tr><th>#</th><th>Tisch</th><th>Kellner</th><th>Status</th><th>Betrag</th><th>Zeit</th></tr></thead>' +
+        '<tbody>' + recentHtml + '</tbody></table></div></div>' +
+    '</div>';
+}
+
+async function renderUsers() {
+  const users = await api('GET', '/api/users');
+  const roles = { admin:'Admin', waiter:'Kellner', kitchen:'Küche', bar:'Bar' };
+  const rows = users.map(u =>
+    '<tr><td>' + u.id + '</td><td>' + esc(u.name) + '</td>' +
+    '<td><span class="badge bb">' + (roles[u.role]||u.role) + '</span></td>' +
+    '<td><span class="badge ' + (u.active ? 'bg' : 'br') + '">' + (u.active ? 'Aktiv' : 'Inaktiv') + '</span></td>' +
+    '<td><button class="btn btn-secondary btn-sm" onclick="editUser(' + u.id + ')">Bearbeiten</button> ' +
+    '<button class="btn btn-danger btn-sm" onclick="delUser(' + u.id + ',\'' + esc(u.name) + '\')">Löschen</button></td></tr>'
+  ).join('');
+  document.getElementById('admin-content').innerHTML =
+    '<div class="tbl-hdr"><h3>Benutzer</h3><button class="btn btn-primary btn-sm" onclick="addUser()">+ Neu</button></div>' +
+    '<div class="tbl-wrap"><table class="dtable"><thead><tr><th>#</th><th>Name</th><th>Rolle</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+function roleOptions(sel) {
+  return [['waiter','Kellner'],['admin','Admin'],['kitchen','Küche'],['bar','Bar']]
+    .map(([v,l]) => '<option value="' + v + '"' + (sel===v?' selected':'') + '>' + l + '</option>').join('');
+}
+function addUser() {
+  openModal('Benutzer hinzufügen',
+    '<div class="form-group"><label>Name</label><input id="u-name" placeholder="Name"></div>' +
+    '<div class="form-group"><label>Rolle</label><select id="u-role">' + roleOptions('waiter') + '</select></div>' +
+    '<div class="form-group"><label>PIN (optional)</label><input id="u-pin" type="password" placeholder="PIN"></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveUser()">Speichern</button>'
+  );
+}
+async function saveUser() {
+  const name = document.getElementById('u-name').value.trim();
+  const role = document.getElementById('u-role').value;
+  const pin  = document.getElementById('u-pin').value;
+  if (!name) { toast('Name erforderlich', 'error'); return; }
+  try {
+    await api('POST', '/api/users', { name, role, ...(pin ? {pin} : {}) });
+    closeModal(); toast('Gespeichert ✓'); await renderUsers();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function editUser(id) {
+  const users = await api('GET', '/api/users');
+  const u = users.find(x => x.id === id); if (!u) return;
+  openModal('Benutzer bearbeiten',
+    '<div class="form-group"><label>Name</label><input id="u-name" value="' + esc(u.name) + '"></div>' +
+    '<div class="form-group"><label>Rolle</label><select id="u-role">' + roleOptions(u.role) + '</select></div>' +
+    '<div class="form-group"><label>Aktiv</label><select id="u-active"><option value="1"' + (u.active?' selected':'') + '>Ja</option><option value="0"' + (!u.active?' selected':'') + '>Nein</option></select></div>' +
+    '<div class="form-group"><label>Neuer PIN (leer = unverändert)</label><input id="u-pin" type="password" placeholder="Neuer PIN"></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveEditUser(' + id + ')">Speichern</button>'
+  );
+}
+async function saveEditUser(id) {
+  const name   = document.getElementById('u-name').value.trim();
+  const role   = document.getElementById('u-role').value;
+  const active = document.getElementById('u-active').value === '1';
+  const pin    = document.getElementById('u-pin').value;
+  try {
+    await api('PUT', '/api/users/' + id, { name, role, active, ...(pin ? {pin} : {}) });
+    closeModal(); toast('Gespeichert ✓'); await renderUsers();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function delUser(id, name) {
+  if (!confirm('Benutzer "' + name + '" wirklich löschen?')) return;
+  try { await api('DELETE', '/api/users/' + id); toast('Gelöscht'); await renderUsers(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+async function renderCategories() {
+  const cats = await api('GET', '/api/categories');
+  const rows = cats.map(c =>
+    '<tr><td>' + c.id + '</td>' +
+    '<td><span class="cdot" style="background:' + esc(c.color) + '"></span> ' + esc(c.name) + '</td>' +
+    '<td>' + (c.station === 'kitchen' ? '🍳 Küche' : '🍺 Bar') + '</td>' +
+    '<td>' + c.sort_order + '</td>' +
+    '<td><button class="btn btn-secondary btn-sm" onclick="editCat(' + c.id + ')">Bearbeiten</button> ' +
+    '<button class="btn btn-danger btn-sm" onclick="delCat(' + c.id + ',\'' + esc(c.name) + '\')">Löschen</button></td></tr>'
+  ).join('');
+  document.getElementById('admin-content').innerHTML =
+    '<div class="tbl-hdr"><h3>Kategorien</h3><button class="btn btn-primary btn-sm" onclick="addCat()">+ Neu</button></div>' +
+    '<table class="dtable"><thead><tr><th>#</th><th>Name</th><th>Station</th><th>Reihenfolge</th><th>Aktionen</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+function catForm(c) {
+  return '<div class="form-group"><label>Name</label><input id="c-name" value="' + esc(c.name||'') + '"></div>' +
+    '<div class="form-group"><label>Station</label><select id="c-station"><option value="bar"' + (c.station==='bar'?' selected':'') + '>Bar</option><option value="kitchen"' + (c.station==='kitchen'?' selected':'') + '>Küche</option></select></div>' +
+    '<div class="form-group"><label>Farbe</label><input id="c-color" type="color" value="' + esc(c.color||'#3fb950') + '"></div>' +
+    '<div class="form-group"><label>Reihenfolge</label><input id="c-sort" type="number" value="' + (c.sort_order||0) + '"></div>';
+}
+function addCat() {
+  openModal('Kategorie hinzufügen', catForm({station:'bar'}),
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveCat()">Speichern</button>');
+}
+async function saveCat() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { toast('Name erforderlich', 'error'); return; }
+  try {
+    await api('POST', '/api/categories', { name, station: document.getElementById('c-station').value, color: document.getElementById('c-color').value, sort_order: parseInt(document.getElementById('c-sort').value)||0 });
+    closeModal(); toast('Gespeichert ✓'); await Promise.all([loadCategories(), renderCategories()]);
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function editCat(id) {
+  const cats = await api('GET', '/api/categories');
+  const c = cats.find(x => x.id === id); if (!c) return;
+  openModal('Kategorie bearbeiten', catForm(c),
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveEditCat(' + id + ')">Speichern</button>');
+}
+async function saveEditCat(id) {
+  try {
+    await api('PUT', '/api/categories/' + id, { name: document.getElementById('c-name').value.trim(), station: document.getElementById('c-station').value, color: document.getElementById('c-color').value, sort_order: parseInt(document.getElementById('c-sort').value)||0 });
+    closeModal(); toast('Gespeichert ✓'); await Promise.all([loadCategories(), renderCategories()]);
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function delCat(id, name) {
+  if (!confirm('Kategorie "' + name + '" löschen?')) return;
+  try { await api('DELETE', '/api/categories/' + id); toast('Gelöscht'); await Promise.all([loadCategories(), renderCategories()]); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+async function renderItems2() {
+  const items = await api('GET', '/api/items');
+  const rows = items.map(it =>
+    '<tr><td>' + it.id + '</td><td>' + esc(it.name) + '</td><td>' + esc(it.category_name||'—') + '</td>' +
+    '<td>' + fmt(it.price) + '</td><td>' + it.sort_order + '</td>' +
+    '<td><span class="badge ' + (it.active ? 'bg' : 'br') + '">' + (it.active ? 'Aktiv' : 'Inaktiv') + '</span></td>' +
+    '<td><button class="btn btn-secondary btn-sm" onclick="editItem(' + it.id + ')">Bearbeiten</button> ' +
+    '<button class="btn btn-danger btn-sm" onclick="delItem(' + it.id + ',\'' + esc(it.name) + '\')">Löschen</button></td></tr>'
+  ).join('');
+  document.getElementById('admin-content').innerHTML =
+    '<div class="tbl-hdr"><h3>Artikel</h3><button class="btn btn-primary btn-sm" onclick="addItem2()">+ Neu</button></div>' +
+    '<div class="tbl-wrap"><table class="dtable"><thead><tr><th>#</th><th>Name</th><th>Kategorie</th><th>Preis</th><th>Reihenfolge</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+function catOpts(sel) {
+  return S.categories.map(c => '<option value="' + c.id + '"' + (c.id===sel?' selected':'') + '>' + esc(c.name) + '</option>').join('');
+}
+function itemForm(it) {
+  return '<div class="form-group"><label>Name</label><input id="i-name" value="' + esc(it.name||'') + '" placeholder="Artikelname"></div>' +
+    '<div class="form-group"><label>Kategorie</label><select id="i-cat">' + catOpts(it.category_id) + '</select></div>' +
+    '<div class="form-group"><label>Preis (€)</label><input id="i-price" type="number" step="0.10" value="' + (it.price||'') + '" placeholder="0.00"></div>' +
+    '<div class="form-group"><label>Reihenfolge</label><input id="i-sort" type="number" value="' + (it.sort_order||0) + '"></div>';
+}
+function addItem2() {
+  openModal('Artikel hinzufügen', itemForm({}),
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveItem2()">Speichern</button>');
+}
+async function saveItem2() {
+  const name = document.getElementById('i-name').value.trim();
+  const price = parseFloat(document.getElementById('i-price').value);
+  if (!name || isNaN(price)) { toast('Name und Preis erforderlich', 'error'); return; }
+  try {
+    await api('POST', '/api/items', { name, category_id: parseInt(document.getElementById('i-cat').value), price, sort_order: parseInt(document.getElementById('i-sort').value)||0 });
+    closeModal(); toast('Gespeichert ✓'); await Promise.all([loadItems(), renderItems2()]);
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function editItem(id) {
+  const items = await api('GET', '/api/items');
+  const it = items.find(x => x.id === id); if (!it) return;
+  openModal('Artikel bearbeiten',
+    itemForm(it) +
+    '<div class="form-group"><label>Aktiv</label><select id="i-active"><option value="1"' + (it.active?' selected':'') + '>Ja</option><option value="0"' + (!it.active?' selected':'') + '>Nein</option></select></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveEditItem(' + id + ')">Speichern</button>');
+}
+async function saveEditItem(id) {
+  try {
+    await api('PUT', '/api/items/' + id, { name: document.getElementById('i-name').value.trim(), category_id: parseInt(document.getElementById('i-cat').value), price: parseFloat(document.getElementById('i-price').value), sort_order: parseInt(document.getElementById('i-sort').value)||0, active: document.getElementById('i-active').value === '1' });
+    closeModal(); toast('Gespeichert ✓'); await Promise.all([loadItems(), renderItems2()]);
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function delItem(id, name) {
+  if (!confirm('Artikel "' + name + '" löschen?')) return;
+  try { await api('DELETE', '/api/items/' + id); toast('Gelöscht'); await Promise.all([loadItems(), renderItems2()]); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+async function renderTablesAdmin() {
+  const tables = await api('GET', '/api/tables');
+  const rows = tables.map(t =>
+    '<tr><td>' + t.id + '</td><td>' + t.number + '</td><td>' + esc(t.name||'—') + '</td>' +
+    '<td><span class="badge ' + (t.active ? 'bg' : 'br') + '">' + (t.active ? 'Aktiv' : 'Inaktiv') + '</span></td>' +
+    '<td><button class="btn btn-secondary btn-sm" onclick="editTableA(' + t.id + ')">Bearbeiten</button> ' +
+    '<button class="btn btn-danger btn-sm" onclick="delTable(' + t.id + ',' + t.number + ')">Löschen</button></td></tr>'
+  ).join('');
+  document.getElementById('admin-content').innerHTML =
+    '<div class="tbl-hdr"><h3>Tische</h3><button class="btn btn-primary btn-sm" onclick="addTableA()">+ Neu</button></div>' +
+    '<table class="dtable"><thead><tr><th>#</th><th>Nummer</th><th>Name</th><th>Status</th><th>Aktionen</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+function addTableA() {
+  openModal('Tisch hinzufügen',
+    '<div class="form-group"><label>Nummer</label><input id="t-num" type="number" placeholder="31"></div>' +
+    '<div class="form-group"><label>Name (optional)</label><input id="t-name" placeholder="Tisch 31"></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveTableA()">Speichern</button>');
+}
+async function saveTableA() {
+  const number = parseInt(document.getElementById('t-num').value);
+  if (!number) { toast('Nummer erforderlich', 'error'); return; }
+  const name = document.getElementById('t-name').value.trim() || 'Tisch ' + number;
+  try { await api('POST', '/api/tables', { number, name }); closeModal(); toast('Gespeichert ✓'); await renderTablesAdmin(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+async function editTableA(id) {
+  const tables = await api('GET', '/api/tables');
+  const t = tables.find(x => x.id === id); if (!t) return;
+  openModal('Tisch bearbeiten',
+    '<div class="form-group"><label>Nummer</label><input id="t-num" type="number" value="' + t.number + '"></div>' +
+    '<div class="form-group"><label>Name</label><input id="t-name" value="' + esc(t.name||'') + '"></div>' +
+    '<div class="form-group"><label>Aktiv</label><select id="t-active"><option value="1"' + (t.active?' selected':'') + '>Ja</option><option value="0"' + (!t.active?' selected':'') + '>Nein</option></select></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>' +
+    '<button class="btn btn-primary" onclick="saveEditTableA(' + id + ')">Speichern</button>');
+}
+async function saveEditTableA(id) {
+  try {
+    await api('PUT', '/api/tables/' + id, { number: parseInt(document.getElementById('t-num').value), name: document.getElementById('t-name').value.trim(), active: document.getElementById('t-active').value === '1' });
+    closeModal(); toast('Gespeichert ✓'); await renderTablesAdmin();
+  } catch(e) { toast(e.message, 'error'); }
+}
+async function delTable(id, num) {
+  if (!confirm('Tisch ' + num + ' löschen?')) return;
+  try { await api('DELETE', '/api/tables/' + id); toast('Gelöscht'); await renderTablesAdmin(); }
+  catch(e) { toast(e.message, 'error'); }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  buildPinPad();
+  const savedToken = localStorage.getItem('mf_token');
+  const savedUser  = localStorage.getItem('mf_user');
+  if (savedToken && savedUser) {
+    S.token = savedToken;
+    try {
+      const me = await api('GET', '/api/auth/me');
+      S.user = me;
+      await startApp();
+      return;
+    } catch {
+      S.token = null;
+      localStorage.removeItem('mf_token');
+      localStorage.removeItem('mf_user');
+    }
+  }
+  await initLogin();
+}
+
+init();
+</script>
+</body>
+</html>
